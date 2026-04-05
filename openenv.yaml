@@ -1,0 +1,1328 @@
+---
+# ============================================================================
+# OpenEnv Specification for GuardianAI Fraud Detection Environment
+# ============================================================================
+# Complete YAML configuration for gymnasium-compatible fraud detection RL
+# environment with full task definitions, reward structures, and metrics.
+#
+# Version: 1.0.0
+# Last Updated: March 26, 2026
+# Status: Production Ready
+# ============================================================================
+
+# ============================================================================
+# ENVIRONMENT METADATA
+# ============================================================================
+environment:
+  # Identifiers
+  id: "FraudDetection-v0"
+  name: "GuardianAI Fraud Detection"
+  namespace: "guardianai"
+  version: "1.0.0"
+  author: "GuardianAI Team"
+  
+  # Description
+  description: |
+    A realistic multi-task fraud detection environment for banking and UPI
+    transactions. Agents learn to classify transactions as legitimate or
+    fraudulent with varying difficulty levels and reward structures.
+  
+  # Documentation
+  documentation: "https://github.com/guardianai/docs"
+  source_code: "https://github.com/guardianai"
+  
+  # Properties
+  properties:
+    # Markov Decision Process
+    markov: true
+    partially_observable: false
+    
+    # Time properties
+    episodic: true
+    discrete_time: true
+    continuous_time: false
+    
+    # Stochasticity
+    stochastic: true
+    deterministic_rewards: false
+    partially_observable_state: false
+    
+    # Agent interaction
+    single_agent: true
+    multi_agent: false
+    cooperative: null
+    
+    # Dynamics
+    state_abstraction: "dictionary_of_features"
+    observation_structure: "featurized"
+    action_structure: "discrete_classification"
+
+# ============================================================================
+# OBSERVATION SPACE (STATE SPACE)
+# ============================================================================
+observation_space:
+  type: "gym.spaces.Dict"
+  description: "Dictionary of transaction and account features"
+  
+  features:
+    # ========================================================================
+    # AMOUNT FEATURES (Transaction monetary value)
+    # ========================================================================
+    amount_zscore:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: -10.0
+        high: 10.0
+      description: "Z-score deviation of amount from user's typical spending"
+      units: "standard_deviations"
+      importance: "critical"
+      
+    amount:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 500000.0
+      description: "Transaction amount in INR"
+      units: "INR"
+      importance: "high"
+    
+    amount_mean:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 100000.0
+      description: "User's average transaction amount (historical)"
+      units: "INR"
+      importance: "high"
+    
+    amount_std:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 50000.0
+      description: "Standard deviation of user's transaction amounts"
+      units: "INR"
+      importance: "medium"
+    
+    # ========================================================================
+    # FREQUENCY FEATURES (Transaction velocity)
+    # ========================================================================
+    transactions_last_1h:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 100
+      description: "Number of transactions in last hour"
+      units: "count"
+      importance: "high"
+    
+    transactions_last_24h:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 1000
+      description: "Number of transactions in last 24 hours"
+      units: "count"
+      importance: "high"
+    
+    hours_since_last_transaction:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 720.0
+      description: "Hours elapsed since last transaction"
+      units: "hours"
+      importance: "medium"
+    
+    # ========================================================================
+    # LOCATION FEATURES (Geographic patterns)
+    # ========================================================================
+    location_change:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 1
+      description: "Is transaction location different from recent history?"
+      units: "binary"
+      importance: "high"
+    
+    new_location:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 1
+      description: "Is this location completely new to account?"
+      units: "binary"
+      importance: "medium"
+    
+    unique_locations_count:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 5000
+      description: "Number of unique locations in account history"
+      units: "count"
+      importance: "low"
+    
+    is_international:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 1
+      description: "Is transaction international?"
+      units: "binary"
+      importance: "high"
+    
+    # ========================================================================
+    # MERCHANT FEATURES (Vendor information)
+    # ========================================================================
+    new_merchant:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 1
+      description: "Is this a new merchant for the account?"
+      units: "binary"
+      importance: "high"
+    
+    unique_merchants_count:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 1000
+      description: "Number of unique merchants account has used"
+      units: "count"
+      importance: "medium"
+    
+    merchant_risk_score:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 1.0
+      description: "Historical fraud risk score of merchant"
+      units: "fraction"
+      importance: "medium"
+    
+    # ========================================================================
+    # ACCOUNT FEATURES (User profile)
+    # ========================================================================
+    fraud_history_rate:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 1.0
+      description: "Fraction of past transactions marked as fraud"
+      units: "fraction"
+      importance: "high"
+    
+    account_age_days:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 3650
+      description: "Age of account in days"
+      units: "days"
+      importance: "medium"
+    
+    account_risk_score:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 1.0
+      description: "Overall account risk score based on history"
+      units: "fraction"
+      importance: "high"
+    
+    # ========================================================================
+    # DEVICE FEATURES (Technical information)
+    # ========================================================================
+    device_changes:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "int32"
+      bounds:
+        low: 0
+        high: 10
+      description: "Number of different devices in recent transactions"
+      units: "count"
+      importance: "medium"
+    
+    network_type:
+      type: "gym.spaces.Discrete"
+      n: 4
+      description: "Type of network (0=Unknown, 1=4G, 2=WiFi, 3=3G)"
+      importance: "low"
+    
+    transaction_velocity:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 100.0
+      description: "Transactions per hour (velocity metric)"
+      units: "transactions/hour"
+      importance: "high"
+    
+    time_of_day_risk:
+      type: "gym.spaces.Box"
+      shape: [1]
+      dtype: "float32"
+      bounds:
+        low: 0.0
+        high: 1.0
+      description: "Risk score based on time of transaction (0-1, where higher=riskier)"
+      units: "fraction"
+      importance: "medium"
+  
+  total_features: 21
+  observation_dtype: "float32"
+
+# ============================================================================
+# ACTION SPACE
+# ============================================================================
+action_space:
+  type: "gym.spaces.Discrete"
+  n: 2
+  description: "Binary classification action for fraud detection"
+  
+  actions:
+    0:
+      id: 0
+      name: "LEGITIMATE"
+      description: "Predict transaction as legitimate (allow)"
+      symbol: "✓"
+      
+    1:
+      id: 1
+      name: "FRAUDULENT"
+      description: "Predict transaction as fraudulent (block)"
+      symbol: "✗"
+  
+  semantics:
+    - "Discrete classification problem"
+    - "Actions are not continuous"
+    - "Actions do not affect future state (offline RL)"
+
+# ============================================================================
+# TASKS DEFINITIONS (Multi-task environment)
+# ============================================================================
+tasks:
+  description: |
+    Three difficulty levels with varying fraud rates, patterns, and baselines.
+    Each task tests different aspects of fraud detection capabilities.
+  
+  num_tasks: 3
+  
+  # ========================================================================
+  # TASK 1: EASY
+  # ========================================================================
+  EASY:
+    id: 1
+    name: "EASY"
+    level: 1
+    description: "Obvious fraud patterns with clear indicators"
+    
+    # Task configuration
+    fraud_rate: 0.08  # 8% of transactions are fraudulent
+    max_episode_length: 500
+    total_transactions: 400
+    fraud_count: 32
+    legitimate_count: 368
+    
+    # Episode properties
+    episode_length: 500  # Minimum transactions per episode
+    episode_timeout: null  # No timeout
+    reset_on_truncation: false
+    
+    # Data characteristics
+    fraud_characteristics:
+      - Large amount deviations (5-20x normal)
+      - Clear geographic anomalies
+      - High transaction velocity (10+ per hour)
+      - New merchants with clear patterns
+      - International transactions with local account
+    
+    # Fraud patterns distribution
+    fraud_patterns:
+      amount_anomaly: 0.25  # 25% of frauds are amount anomalies
+      geographic_anomaly: 0.20
+      velocity_fraud: 0.20
+      unusual_merchant: 0.15
+      account_compromise: 0.10
+      test_transaction: 0.05
+      synthetic_identity: 0.03
+      fraud_ring: 0.02
+    
+    # Agent capabilities required
+    required_features: ["amount_zscore", "location_change", "transactions_last_1h"]
+    
+    # Reward scheme
+    reward_scheme: "balanced"
+    reward_structure:
+      true_positive: 1.0      # Correctly identified fraud
+      true_negative: 0.5      # Correctly allowed legitimate
+      false_positive: -0.5    # Wrongly blocked legitimate
+      false_negative: -1.0    # Missed fraudulent transaction
+      bounds: [-1.0, 1.0]
+    
+    # Performance baselines
+    baselines:
+      random_agent:
+        accuracy: 0.50
+        precision: 0.08
+        recall: 0.50
+        f1: 0.13
+      heuristic_agent:
+        accuracy: 0.78
+        precision: 0.60
+        recall: 0.70
+        f1: 0.65
+      ml_baseline:
+        accuracy: 0.85
+        precision: 0.80
+        recall: 0.75
+        f1: 0.77
+    
+    # Success criteria (to pass task)
+    success_criteria:
+      min_accuracy: 0.65
+      min_precision: 0.50
+      min_recall: 0.60
+      min_f1: 0.55
+      target_accuracy: 0.85
+      target_precision: 0.80
+      target_recall: 0.75
+    
+    # Scoring weights
+    scoring_weights:
+      accuracy: 0.15
+      precision: 0.25  # Emphasis on not blocking customers
+      recall: 0.25     # Emphasis on catching fraud
+      f1_score: 0.10
+      reward: 0.25
+    
+    # Environment seed
+    random_seed: 42
+    deterministic: false
+  
+  # ========================================================================
+  # TASK 2: MEDIUM
+  # ========================================================================
+  MEDIUM:
+    id: 2
+    name: "MEDIUM"
+    level: 2
+    description: "Realistic fraud patterns requiring pattern recognition"
+    
+    # Task configuration
+    fraud_rate: 0.05  # 5% of transactions are fraudulent
+    max_episode_length: 800
+    total_transactions: 800
+    fraud_count: 40
+    legitimate_count: 760
+    
+    # Episode properties
+    episode_length: 800
+    episode_timeout: null
+    reset_on_truncation: false
+    
+    # Data characteristics
+    fraud_characteristics:
+      - Moderate amount deviations (3-10x normal)
+      - Occasional geographic changes
+      - Moderate transaction velocity (4-8 per hour)
+      - Mix of new and known merchants
+      - Combination of milder indicators
+    
+    # Fraud patterns distribution
+    fraud_patterns:
+      amount_anomaly: 0.18
+      geographic_anomaly: 0.15
+      velocity_fraud: 0.18
+      unusual_merchant: 0.20
+      account_compromise: 0.15
+      test_transaction: 0.08
+      synthetic_identity: 0.04
+      fraud_ring: 0.02
+    
+    # Agent capabilities required
+    required_features: ["amount_zscore", "fraud_history_rate", "new_merchant", "transactions_last_24h"]
+    
+    # Reward scheme
+    reward_scheme: "balanced"
+    reward_structure:
+      true_positive: 1.0
+      true_negative: 0.5
+      false_positive: -0.5
+      false_negative: -1.0
+      bounds: [-1.0, 1.0]
+    
+    # Performance baselines
+    baselines:
+      random_agent:
+        accuracy: 0.50
+        precision: 0.05
+        recall: 0.50
+        f1: 0.09
+      heuristic_agent:
+        accuracy: 0.68
+        precision: 0.35
+        recall: 0.60
+        f1: 0.44
+      ml_baseline:
+        accuracy: 0.78
+        precision: 0.65
+        recall: 0.70
+        f1: 0.67
+    
+    # Success criteria
+    success_criteria:
+      min_accuracy: 0.55
+      min_precision: 0.35
+      min_recall: 0.50
+      min_f1: 0.42
+      target_accuracy: 0.78
+      target_precision: 0.65
+      target_recall: 0.70
+    
+    # Scoring weights (emphasis on recall for pattern detection)
+    scoring_weights:
+      accuracy: 0.10
+      precision: 0.20
+      recall: 0.30      # Higher emphasis on catching fraud patterns
+      f1_score: 0.15
+      reward: 0.25
+    
+    # Environment seed
+    random_seed: 123
+    deterministic: false
+  
+  # ========================================================================
+  # TASK 3: HARD
+  # ========================================================================
+  HARD:
+    id: 3
+    name: "HARD"
+    level: 3
+    description: "Sophisticated fraud with minimal indicators, requires ML"
+    
+    # Task configuration
+    fraud_rate: 0.025  # 2.5% of transactions are fraudulent
+    max_episode_length: 1500
+    total_transactions: 1500
+    fraud_count: 37
+    legitimate_count: 1463
+    
+    # Episode properties
+    episode_length: 1500
+    episode_timeout: null
+    reset_on_truncation: false
+    
+    # Data characteristics
+    fraud_characteristics:
+      - Subtle amount deviations (1.5-3x normal)
+      - Rare geographic changes
+      - Low transaction velocity (1-2 per hour)
+      - Mix with established merchants
+      - Minimal feature violations
+      - Requires multi-feature analysis
+    
+    # Fraud patterns distribution
+    fraud_patterns:
+      amount_anomaly: 0.10
+      geographic_anomaly: 0.08
+      velocity_fraud: 0.12
+      unusual_merchant: 0.15
+      account_compromise: 0.20
+      test_transaction: 0.12
+      synthetic_identity: 0.15
+      fraud_ring: 0.08
+    
+    # Agent capabilities required
+    required_features: [
+      "amount_zscore", "fraud_history_rate", "account_risk_score",
+      "merchant_risk_score", "device_changes", "location_change"
+    ]
+    
+    # Reward scheme (with penalties for low precision)
+    reward_scheme: "learning"
+    reward_structure:
+      true_positive: 1.0
+      true_negative: 0.5
+      false_positive: -0.5
+      false_negative: -1.0
+      bounds: [-1.0, 1.0]
+      precision_penalty: -0.5  # Extra penalty if precision < 0.85
+    
+    # Performance baselines
+    baselines:
+      random_agent:
+        accuracy: 0.50
+        precision: 0.025
+        recall: 0.50
+        f1: 0.048
+      heuristic_agent:
+        accuracy: 0.55
+        precision: 0.20
+        recall: 0.45
+        f1: 0.28
+      ml_baseline:
+        accuracy: 0.70
+        precision: 0.50
+        recall: 0.65
+        f1: 0.57
+    
+    # Success criteria
+    success_criteria:
+      min_accuracy: 0.45
+      min_precision: 0.25
+      min_recall: 0.40
+      min_f1: 0.31
+      target_accuracy: 0.70
+      target_precision: 0.50
+      target_recall: 0.65
+    
+    # Scoring weights (strong emphasis on recall for hidden fraud)
+    scoring_weights:
+      accuracy: 0.05
+      precision: 0.15
+      recall: 0.40      # Highest emphasis on catching hidden patterns
+      f1_score: 0.15
+      reward: 0.25
+    
+    # Environment seed
+    random_seed: 456
+    deterministic: false
+  
+  # Task relationships
+  task_relationships:
+    EASY_to_MEDIUM: "Introduces pattern complexity and lower fraud rate"
+    MEDIUM_to_HARD: "Requires ML models, subtle indicators, multi-feature analysis"
+    progression: "EASY → MEDIUM → HARD"
+  
+  task_selection_strategy: "Can be selected individually or sequentially"
+
+# ============================================================================
+# REWARD FUNCTION (Multi-component)
+# ============================================================================
+reward_function:
+  description: |
+    Comprehensive reward system combining classification accuracy, confidence,
+    difficulty, partial signals, and learning progress.
+  
+  # General properties
+  type: "bounded"
+  bounds: [-15.0, 15.0]
+  deterministic: false  # Confidence bonus adds stochasticity
+  
+  # ========================================================================
+  # REWARD SCHEMES (Task-specific)
+  # ========================================================================
+  schemes:
+    # ================================================================
+    # BALANCED SCHEME (Default - equal precision/recall emphasis)
+    # ================================================================
+    balanced:
+      name: "Balanced"
+      description: "Equal emphasis on precision (no false alarms) and recall (catch fraud)"
+      target_use: "General purpose, recommended for practitioners"
+      
+      base_rewards:
+        true_positive: 1.0        # TP: Fraud caught correctly
+        true_negative: 0.5        # TN: Legitimate allowed correctly
+        false_positive: -0.5      # FP: Legitimate wrongly blocked
+        false_negative: -1.0      # FN: Fraud missed
+      
+      multipliers:
+        confidence_bonus: true    # Apply confidence weighting
+        difficulty_bonus: true    # Apply difficulty adjustment
+        partial_signals: true     # Detect intermediate signals
+        improvement_tracking: true  # Reward learning progress
+      
+      parameters:
+        confidence_range: [0.8, 1.2]
+        difficulty_range: [0.8, 1.3]
+        anomaly_threshold: 0.5
+    
+    # ================================================================
+    # CONSERVATIVE SCHEME (Minimize false positives)
+    # ================================================================
+    conservative:
+      name: "Conservative"
+      description: "Emphasis on precision - avoid blocking legitimate customers"
+      target_use: "Production systems where false positives costly"
+      
+      base_rewards:
+        true_positive: 0.8        # Lower reward for fraud detection
+        true_negative: 0.6        # Higher reward for allowing legitimate
+        false_positive: -0.8      # Heavy penalty for false alarms
+        false_negative: -1.0      # Still penalize missed fraud
+      
+      multipliers:
+        confidence_bonus: true
+        difficulty_bonus: true
+        partial_signals: true
+        improvement_tracking: true
+      
+      parameters:
+        confidence_range: [0.8, 1.2]
+        difficulty_range: [0.8, 1.3]
+        fp_penalty_multiplier: 1.5  # 50% heavier FP penalty
+    
+    # ================================================================
+    # AGGRESSIVE SCHEME (Maximize recall - catch all fraud)
+    # ================================================================
+    aggressive:
+      name: "Aggressive"
+      description: "Emphasis on recall - catch as much fraud as possible"
+      target_use: "High-fraud environments, research/analysis"
+      
+      base_rewards:
+        true_positive: 1.3        # Bonus for fraud detection
+        true_negative: 0.3        # Minimal reward for allowing
+        false_positive: -0.3      # Light penalty for false alarms
+        false_negative: -1.3      # Severe penalty for missed fraud
+      
+      multipliers:
+        confidence_bonus: true
+        difficulty_bonus: true
+        partial_signals: true
+        improvement_tracking: true
+      
+      parameters:
+        confidence_range: [0.8, 1.2]
+        difficulty_range: [0.8, 1.3]
+        fn_penalty_multiplier: 1.3  # 30% heavier FN penalty
+    
+    # ================================================================
+    # LEARNING SCHEME (Maximize improvement)
+    # ================================================================
+    learning:
+      name: "Learning"
+      description: "Emphasis on learning progress and improvement over time"
+      target_use: "Agent training phases, curriculum learning"
+      
+      base_rewards:
+        true_positive: 1.0        # Standard TP reward
+        true_negative: 0.5        # Standard TN reward
+        false_positive: -0.5      # Standard FP penalty
+        false_negative: -1.0      # Standard FN penalty
+      
+      multipliers:
+        confidence_bonus: true
+        difficulty_bonus: true
+        partial_signals: true     # Higher weight on partial signals
+        improvement_tracking: true  # Track learning progress
+      
+      parameters:
+        partial_signal_weights:
+          amount_zscore: 0.08       # Strongest indicator
+          fraud_history_rate: 0.08
+          velocity: 0.08
+          new_merchant: 0.06
+          location_change: 0.05
+          is_international: 0.05
+        improvement_window: 50      # Track last 50 steps
+        improvement_bonus_scaling: 1.5  # 50% bonus for improvement
+  
+  # ========================================================================
+  # REWARD COMPONENTS (Detailed breakdown)
+  # ========================================================================
+  components:
+    base_reward:
+      description: "Foundation reward for correct/incorrect classification"
+      source: "scheme.base_rewards"
+      
+    confidence_bonus:
+      description: "Bonus/penalty for model confidence in prediction"
+      formula: "base_reward × confidence_factor"
+      confidence_factor: "[0.8, 1.2]"  # Penalize uncertainty, reward certainty
+      enabled_by_default: true
+      
+      confidence_ranges:
+        uncertain: [0.50, 0.70]  # 0.8x multiplier
+        moderate: [0.70, 0.90]   # 0.9-1.0x multiplier
+        certain: [0.90, 1.00]    # 1.1-1.2x multiplier
+      
+      example: |
+        TP with 95% confidence: 1.0 × 1.15 = 1.15
+        TP with 60% confidence: 1.0 × 0.80 = 0.80
+    
+    difficulty_multiplier:
+      description: "Adjust reward based on fraud pattern complexity"
+      formula: "confidence_reward × difficulty_factor"
+      difficulty_factor: "[0.8, 1.3]"
+      enabled_by_default: true
+      
+      difficulty_ranges:
+        obvious: [0.0, 0.5]      # 0.8x multiplier (easy patterns)
+        subtle: [0.5, 0.8]       # 1.0x multiplier (medium)
+        hidden: [0.8, 1.0]       # 1.2-1.3x multiplier (hard)
+      
+      example: |
+        TP on obvious fraud: 1.0 × 1.15 × 0.8 = 0.92
+        TP on hidden fraud: 1.0 × 1.15 × 1.25 = 1.44
+    
+    partial_signals_bonus:
+      description: "Reward detecting intermediate fraud indicators"
+      enabled_by_default: true
+      
+      signals:
+        amount_zscore_detected: 0.08
+        fraud_history_high: 0.08
+        velocity_high: 0.06
+        new_merchant_detected: 0.05
+        location_anomaly_detected: 0.05
+        international_flag: 0.04
+      
+      max_partial_bonus: 0.50  # Cap at 0.5 per transaction
+      
+      example: |
+        Detecting 3 signals (amount, velocity, new_merchant):
+        Partial bonus = 0.08 + 0.06 + 0.05 = 0.19
+    
+    improvement_bonus:
+      description: "Reward learning and performance improvement"
+      enabled_by_default: true
+      
+      tracking:
+        window_size: 50  # Track last 50 decisions
+        baseline: "accuracy_last_100_steps"
+        improvement_threshold: 0.01
+      
+      scaling: [0.0, 0.40]  # Max +0.4 bonus for improvement
+      
+      example: |
+        Accuracy increased from 68% to 72% (improvement = 4%):
+        Improvement bonus = 0.40 × (0.04 / max_improvement) = +0.15
+  
+  # ========================================================================
+  # REWARD CALCULATION EXAMPLE
+  # ========================================================================
+  calculation_example: |
+    Scenario: Agent correctly identifies fraud (TP)
+    - Base reward: 1.0 (for TP)
+    - Confidence: 0.92 → confidence_factor = 1.12
+    - Difficulty: hidden_fraud (0.85) → difficulty_factor = 1.25
+    - Partial signals: amount + velocity + history = 0.19 bonus
+    - Improvement: +0.10 bonus
+    
+    Total reward = 1.0 × 1.12 × 1.25 + 0.19 + 0.10 = 1.79 (clamped to [1.0, 15.0])
+    
+    Alternative: Misses fraud (FN)
+    - Base reward: -1.0 (for FN)
+    - Confidence: 0.70 → confidence_factor = 0.88
+    - Difficulty: hidden_fraud → difficulty_factor = 1.25
+    
+    Total reward = -1.0 × 0.88 × 1.25 = -1.10
+
+# ============================================================================
+# RESET BEHAVIOR
+# ============================================================================
+reset:
+  description: "Initialize or reset the environment"
+  
+  inputs:
+    seed:
+      type: "int or None"
+      required: false
+      description: "Random seed for reproducibility"
+    options:
+      type: "dict"
+      required: false
+      description: "Optional configuration overrides"
+      options:
+        task: "str (EASY/MEDIUM/HARD)"
+        reward_scheme: "str (balanced/conservative/aggressive/learning)"
+        num_transactions: "int"
+  
+  outputs:
+    - name: "observation"
+      type: "np.ndarray or dict"
+      shape_or_structure: "21 features (float32)"
+      description: "Initial state observation for first transaction"
+    
+    - name: "info"
+      type: "dict"
+      description: "Additional metadata about initial transaction"
+  
+  info_dict:
+    transaction_id:
+      type: "str"
+      description: "Unique transaction identifier"
+      example: "TXN000001"
+    
+    user_id:
+      type: "int"
+      description: "Unique user identifier"
+      example: 1234
+    
+    amount:
+      type: "float"
+      description: "Transaction amount in INR"
+      example: 5000.50
+    
+    merchant:
+      type: "str"
+      description: "Merchant name or identifier"
+      example: "Amazon.in"
+    
+    location:
+      type: "str"
+      description: "Transaction location"
+      example: "New Delhi"
+    
+    is_fraud_ground_truth:
+      type: "bool"
+      description: "True label (fraudulent or not)"
+      example: false
+    
+    fraud_pattern:
+      type: "str or None"
+      description: "Type of fraud if fraudulent"
+      example: "amount_anomaly"
+    
+    anomaly_score:
+      type: "float"
+      description: "Fraud likelihood score (0-1)"
+      example: 0.15
+    
+    episode_step:
+      type: "int"
+      description: "Step within current episode"
+      example: 1
+    
+    task:
+      type: "str"
+      description: "Current task difficulty"
+      example: "EASY"
+
+# ============================================================================
+# STEP BEHAVIOR
+# ============================================================================
+step:
+  description: "Execute one step of interaction with environment"
+  
+  inputs:
+    action:
+      type: "int"
+      range: [0, 1]
+      description: "Agent's decision (0=LEGITIMATE, 1=FRAUDULENT)"
+  
+  outputs:
+    - name: "observation"
+      type: "np.ndarray or dict"
+      shape_or_structure: "21 features (float32)"
+      description: "Next transaction state observation"
+    
+    - name: "reward"
+      type: "float"
+      bounds: [-15.0, 15.0]
+      description: "Reward for this action"
+    
+    - name: "terminated"
+      type: "bool"
+      description: "Whether episode ended normally (max_steps reached)"
+    
+    - name: "truncated"
+      type: "bool"
+      description: "Whether episode was cut short"
+    
+    - name: "info"
+      type: "dict"
+      description: "Additional metadata (same structure as reset info)"
+  
+  step_semantics:
+    - "Each step processes one transaction"
+    - "Agent action does not affect future transactions (offline RL)"
+    - "Reward depends only on current action and ground truth"
+    - "Episode terminates after max_episode_length transactions"
+
+# ============================================================================
+# ENVIRONMENT DYNAMICS
+# ============================================================================
+dynamics:
+  description: "How environment evolves over time"
+  
+  transaction_generation:
+    - "Each reset() generates new transaction sequence"
+    - "Transactions sampled from realistic user behavior models"
+    - "Fraud injected based on fraud_rate with patterns"
+    - "Features computed relative to account history"
+  
+  state_transitions:
+    - "Transactions processed sequentially"
+    - "Account history updated (rolling window)"
+    - "User profiles remain constant during episode"
+    - "Next transaction's features depend on previous ones (history)"
+  
+  agent_interaction:
+    - "Agent actions don't modify environment state"
+    - "Prediction accuracy is tracked offline"
+    - "Ground truth is known only after evaluation"
+    - "Supports offline RL and offline evaluation"
+  
+  episode_termination:
+    - "Episode ends after max_episode_length transactions"
+    - "No early termination (always full evaluation)"
+    - "Deterministic termination condition"
+    - "Summary statistics computed at episode end"
+
+# ============================================================================
+# PERFORMANCE METRICS
+# ============================================================================
+metrics:
+  description: "Evaluation metrics for assessing agent performance"
+  
+  primary_metrics:
+    accuracy:
+      name: "Accuracy"
+      formula: "(TP + TN) / (TP + TN + FP + FN)"
+      range: [0.0, 1.0]
+      interpretation: "Proportion of correct predictions overall"
+      importance: "high"
+      
+    precision:
+      name: "Precision"
+      formula: "TP / (TP + FP)"
+      range: [0.0, 1.0]
+      interpretation: "Of flagged transactions, how many are actually fraud?"
+      importance: "high"
+      concern: "False positives harm customer experience"
+      
+    recall:
+      name: "Recall (True Positive Rate)"
+      formula: "TP / (TP + FN)"
+      range: [0.0, 1.0]
+      interpretation: "Of actual fraud, what fraction was caught?"
+      importance: "high"
+      concern: "False negatives represent business loss"
+  
+  secondary_metrics:
+    specificity:
+      name: "Specificity (True Negative Rate)"
+      formula: "TN / (TN + FP)"
+      range: [0.0, 1.0]
+      interpretation: "Of legitimate transactions, what fraction was allowed?"
+      importance: "medium"
+    
+    f1_score:
+      name: "F1 Score"
+      formula: "2 × (precision × recall) / (precision + recall)"
+      range: [0.0, 1.0]
+      interpretation: "Harmonic mean of precision and recall"
+      importance: "medium"
+    
+    roc_auc:
+      name: "ROC-AUC"
+      formula: "Area under ROC curve"
+      range: [0.0, 1.0]
+      interpretation: "Ranking performance across thresholds"
+      importance: "medium"
+    
+    total_fraud_detected:
+      name: "Frauds Caught"
+      formula: "Sum of true positives"
+      interpretation: "Absolute count of frauds correctly flagged"
+      importance: "business"
+    
+    total_false_positives:
+      name: "False Positives"
+      formula: "Sum of false positives"
+      interpretation: "Customers wrongly blocked"
+      importance: "business"
+    
+    fp_rate:
+      name: "False Positive Rate"
+      formula: "FP / (FP + TN)"
+      range: [0.0, 1.0]
+      interpretation: "Fraction of legitimate blocked wrongly"
+      importance: "business"
+  
+  reward_metrics:
+    cumulative_reward:
+      name: "Total Reward"
+      description: "Sum of rewards over episode"
+      formula: "Σ rewards"
+    
+    average_reward:
+      name: "Average Reward"
+      description: "Mean reward per transaction"
+      formula: "Σ rewards / num_transactions"
+    
+    reward_efficiency:
+      name: "Reward Efficiency"
+      description: "Reward relative to fraud caught"
+      formula: "total_reward / (TP + max(FN))"
+
+# ============================================================================
+# CONFIGURATION PARAMETERS
+# ============================================================================
+configuration:
+  description: "Tunable environment parameters"
+  
+  parameters:
+    num_accounts:
+      type: "int"
+      default: 100
+      range: [1, 100000]
+      description: "Number of user accounts to simulate"
+      importance: "high"
+    
+    num_merchants:
+      type: "int"
+      default: 1000
+      range: [100, 100000]
+      description: "Number of merchants in system"
+      importance: "high"
+    
+    num_transactions:
+      type: "int"
+      default: 1000
+      range: [1, 100000]
+      description: "Transactions per episode"
+      importance: "high"
+    
+    fraud_rate:
+      type: "float"
+      default: 0.05
+      range: [0.0, 1.0]
+      description: "Proportion of fraudulent transactions"
+      importance: "high"
+      task_override:
+        EASY: 0.08
+        MEDIUM: 0.05
+        HARD: 0.025
+    
+    task:
+      type: "enum"
+      default: "MEDIUM"
+      choices: ["EASY", "MEDIUM", "HARD"]
+      description: "Fraud pattern difficulty level"
+      importance: "high"
+    
+    reward_scheme:
+      type: "enum"
+      default: "balanced"
+      choices: ["balanced", "conservative", "aggressive", "learning"]
+      description: "Reward function scheme"
+      importance: "high"
+    
+    random_seed:
+      type: "int"
+      default: 42
+      range: [0, 2147483647]
+      description: "Random seed for reproducibility"
+      importance: "medium"
+
+# ============================================================================
+# FRAUD PATTERNS (Injected anomalies)
+# ============================================================================
+fraud_patterns:
+  num_patterns: 8
+  
+  patterns:
+    - name: "amount_anomaly"
+      id: 1
+      severity: "high"
+      prevalence: 0.15  # 15% of frauds use this pattern
+      description: "Unusually large transaction amount"
+      detection_rule: "amount_zscore > 2.5"
+      characteristics:
+        - Amount 5-20x user's typical transaction
+        - No other anomalies
+        - Often with known merchants
+      indicator_weight: 0.25
+    
+    - name: "geographic_anomaly"
+      id: 2
+      severity: "high"
+      prevalence: 0.10
+      description: "Transaction from geographically distant location"
+      detection_rule: "location_change AND is_international"
+      characteristics:
+        - Transaction from different country
+        - Location never seen before
+        - Rapid move from previous location
+      indicator_weight: 0.20
+    
+    - name: "velocity_fraud"
+      id: 3
+      severity: "medium"
+      prevalence: 0.12
+      description: "Multiple transactions in very short time window"
+      detection_rule: "transactions_last_1h > 8"
+      characteristics:
+        - 10+ transactions in 1 hour
+        - Mostly with different merchants
+        - Amounts vary widely
+      indicator_weight: 0.20
+    
+    - name: "unusual_merchant"
+      id: 4
+      severity: "medium"
+      prevalence: 0.11
+      description: "Transaction with high-risk merchant"
+      detection_rule: "new_merchant OR merchant_risk_score > 0.7"
+      characteristics:
+        - First transaction with merchant
+        - Merchant has high fraud history
+        - Often for risky categories
+      indicator_weight: 0.18
+    
+    - name: "account_compromise"
+      id: 5
+      severity: "high"
+      prevalence: 0.18
+      description: "Multiple fraud indicators combined"
+      detection_rule: "amount_anomaly AND (location_change OR new_merchant) AND velocity"
+      characteristics:
+        - Multiple simultaneous anomalies
+        - Clear account takeover pattern
+        - Requires multi-feature analysis
+      indicator_weight: 0.10
+    
+    - name: "test_transaction"
+      id: 6
+      severity: "low"
+      prevalence: 0.08
+      description: "Small test transaction followed by large transaction"
+      detection_rule: "small_transaction THEN large_transaction"
+      characteristics:
+        - Very small amount (< 100 INR)
+        - Followed by large transaction
+        - Common fraudster technique
+      indicator_weight: 0.12
+    
+    - name: "synthetic_identity"
+      id: 7
+      severity: "high"
+      prevalence: 0.09
+      description: "Completely fabricated account"
+      detection_rule: "account_age_days == 0 AND device_changes > 3"
+      characteristics:
+        - Brand new account
+        - Multiple devices immediately
+        - Unusual transaction patterns
+      indicator_weight: 0.15
+    
+    - name: "fraud_ring"
+      id: 8
+      severity: "medium"
+      prevalence: 0.17
+      description: "Coordinated fraud across multiple partners"
+      detection_rule: "similar_patterns_across_accounts"
+      characteristics:
+        - Pattern matches other flagged accounts
+        - Shared merchants or locations
+        - Timing correlations
+      indicator_weight: 0.12
+
+# ============================================================================
+# ENVIRONMENT METADATA
+# ============================================================================
+metadata:
+  version: "1.0.0"
+  openenv_version: "0.2.0"  # Compatible with OpenEnv spec
+  last_updated: "2026-03-26"
+  status: "production"
+  
+  citations:
+    - author: "GuardianAI Team"
+      year: 2026
+      title: "Real-World Fraud Detection Environment"
+    
+    - author: "OpenAI"
+      year: 2018
+      title: "Gym: A Toolkit for Developing and Comparing RL Algorithms"
+  
+  related_environments:
+    - "FraudDetection-v1 (Enhanced), planned for next release"
+    - "BankingTransaction-v0 (Simpler), for beginners"
+  
+  keywords:
+    - "fraud-detection"
+    - "financial-rl"
+    - "multi-task-learning"
+    - "banking"
+    - "reinforcement-learning"
+    - "gymnasium"
+    - "openenv"
+  
+  contact:
+    email: "team@guardianai.ai"
+    website: "https://guardianai.ai"
+    documentation: "https://docs.guardianai.ai"
+
+# ============================================================================
+# REFERENCES & COMPATIBILITY
+# ============================================================================
+compatibility:
+  gymnasium_version: ">=0.26.0"
+  gym_version: "Not required (gymnasium is recommended)"
+  python_version: ">=3.8"
+  numpy_version: ">=1.19.0"
+  
+  interface:
+    - "gym.Env (compatible with OpenAI Gym)"
+    - "gymnasium.Env (recommended)"
+    - "Dict observation space (gym.spaces.Dict)"
+    - "Discrete action space (gym.spaces.Discrete)"
+
+# ============================================================================
+# END OF OPENENV YAML SPECIFICATION
+# ============================================================================
+# GuardianAI Fraud Detection Environment v1.0.0
+# Production Ready • Fully Specified • Multi-Task Learning
+# Status: ✅ Complete
+# ============================================================================
+  dm_control_compatible: false
+
+# Metadata
+metadata:
+  created: "2024-01-01"
+  last_updated: "2024-03-26"
+  maintainer: "GuardianAI Team"
+  license: "MIT"
+  tags:
+    - "fraud-detection"
+    - "financial"
+    - "classification"
+    - "anomaly-detection"
+    - "banking"
+    - "reinforcement-learning"

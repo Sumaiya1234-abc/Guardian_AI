@@ -1,0 +1,112 @@
+👋 WELCOME TO GUARDIANAI - Fraud Detection Environment
+
+🚀 START HERE:
+1. Read: QUICKSTART.md (5 min)
+2. Run:  python examples/quickstart.py (1 min)
+3. Learn: docs/API_REFERENCE.md (15 min)
+
+📚 DOCUMENTATION:
+- QUICKSTART.md ................. Getting started guide
+- README.md ..................... Project overview
+- PROJECT_SUMMARY.md ............ Full feature summary
+- FILES_GUIDE.md ................ Documentation of all files
+- ROADMAP.md .................... Future plans
+- docs/SETUP.md ................. Installation guide
+- docs/API_REFERENCE.md ......... Complete API docs
+- docs/AGENT_DEVELOPMENT.md ..... How to build agents
+- docs/FRAUD_PATTERNS.md ........ Fraud type details
+
+🎮 EXAMPLES (Run these!):
+- python examples/quickstart.py ............ 1 min - Simplest intro
+- python examples/basic_usage.py .......... 5 min - Detailed tutorial
+- python examples/agent_evaluation.py ..... 10 min - Compare agents
+- python examples/advanced_learning.py ... 15 min - Online learning
+- python examples/ml_integration.py ...... 20 min - ML models
+
+📁 PROJECT STRUCTURE:
+guardianai/             Core environment package
+├─ environment.py      Main OpenEnv-compatible class
+├─ transaction_simulator.py
+├─ fraud_patterns.py
+└─ account_manager.py
+
+agents/                 Pre-built agents
+examples/              Example scripts
+docs/                  Detailed documentation
+tests/                 Unit tests
+config.py              Configuration
+
+🧪 TESTING:
+python -m pytest tests/ -v         Run all tests
+python tests/test_environment.py    Run tests directly
+
+⚙️ INSTALLATION:
+pip install -r requirements.txt
+
+📊 ENVIRONMENT FEATURES:
+✓ OpenEnv/Gymnasium compatible
+✓ 8 realistic fraud patterns
+✓ 100+ configurable accounts
+✓ 6 pre-built agents
+✓ Multiple difficulty levels
+✓ Configurable reward schemes
+✓ Rich observable features
+✓ Comprehensive metrics
+
+🎯 FRAUD PATTERNS:
+1. Amount Anomaly
+2. Geographic Fraud
+3. Velocity Fraud
+4. Unusual Merchant
+5. Account Compromise
+6. Test Transactions
+7. Synthetic Identity
+8. Fraud Rings
+
+🤖 PRE-BUILT AGENTS:
+- RandomAgent (baseline)
+- ThresholdAgent (rule-based)
+- RiskScoreAgent (weighted)
+- ConservativeAgent (high precision)
+- AggressiveAgent (high recall)
+- BalancedAgent (F1-optimized)
+
+✨ KEY FEATURES:
+- Realistic transaction simulation
+- Multi-dimensional fraud patterns
+- Real-time agent interaction
+- Feature extraction for ML
+- Episode summaries with metrics
+- Easy to extend
+
+🔗 QUICK LINKS:
+- Start here: QUICKSTART.md
+- First run: python examples/quickstart.py
+- Full API: docs/API_REFERENCE.md
+- Build agents: docs/AGENT_DEVELOPMENT.md
+- Understand fraud: docs/FRAUD_PATTERNS.md
+- See all files: FILES_GUIDE.md
+
+💡 TYPICAL WORKFLOW:
+1. Read QUICKSTART.md
+2. Run quickstart.py
+3. Read API_REFERENCE.md
+4. Try basic_usage.py
+5. Read AGENT_DEVELOPMENT.md
+6. Build your own agent
+7. Run agent_evaluation.py
+8. Experiment and iterate!
+
+📞 NEED HELP?
+1. Check QUICKSTART.md
+2. Review examples/
+3. Read relevant docs/ file
+4. Look at test cases
+5. Review source code comments
+
+---
+
+READY? Let's go! 🚀
+
+Next step: Read QUICKSTART.md
+Or run: python examples/quickstart.py

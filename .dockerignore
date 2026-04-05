@@ -1,0 +1,61 @@
+# .dockerignore - Files to exclude from Docker build context
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Development
+.venv
+.env
+.env.local
+*.pyc
+__pycache__
+.pytest_cache
+.coverage
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentation
+docs/
+*.md
+
+# Testing
+tests/
+pytest.ini
+.coveragerc
+
+# Data and logs (large files)
+data/
+logs/
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.whl
+
+# Dependencies (will be installed in Docker)
+venv/
+env/
+
+# Optional: Jupyter
+.ipynb_checkpoints
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Temporary files
+*.tmp
+*.bak
