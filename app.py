@@ -236,14 +236,27 @@ def reset_environment():
         max_episode_length=100
     )
 
+    # Reset the environment
     observation, info = env_instance.reset()
-if hasattr(observation, "tolist"):
+
+    # Convert NumPy arrays in observation to lists
+    if hasattr(observation, "tolist"):
         observation = observation.tolist()
+
+    # Convert NumPy scalars in info to JSON-safe types
+    for key, value in info.items():
+        if isinstance(value, np.ndarray):
+            info[key] = value.tolist()
+        elif isinstance(value, (np.float32, np.float64)):
+            info[key] = float(value)
+        elif isinstance(value, (np.int32, np.int64)):
+            info[key] = int(value)
+
+    # Return JSON response
     return jsonify({
-        "observation": observation.tolist(),
-        "state": {
-            "step": 0
-        }
+        "observation": observation,
+        "info": info,
+        "state": {"step": 0}
     }), 200
 
 
@@ -254,11 +267,15 @@ def get_state():
     if env_instance is None:
         return jsonify({"error": "Environment not initialized"}), 400
 
+    # Ensure current_step is a standard Python int
+    step = int(env_instance.current_step) if hasattr(env_instance, "current_step") else 0
+
     return jsonify({
         "state": {
-            "step": env_instance.current_step
+            "step": step
         }
     }), 200
+
 
 
 @app.route('/step', methods=['POST'])
@@ -272,12 +289,23 @@ def step_environment():
     action = data.get("action", 0)
 
     observation, reward, terminated, truncated, info = env_instance.step(action)
-
     done = terminated or truncated
-if hasattr(observation, "tolist"):
+
+    # Convert NumPy arrays in observation to lists
+    if hasattr(observation, "tolist"):
         observation = observation.tolist()
+
+    # Convert NumPy scalars/arrays in info to JSON-safe types
+    for key, value in info.items():
+        if isinstance(value, np.ndarray):
+            info[key] = value.tolist()
+        elif isinstance(value, (np.float32, np.float64)):
+            info[key] = float(value)
+        elif isinstance(value, (np.int32, np.int64)):
+            info[key] = int(value)
+
     return jsonify({
-        "observation": observation.tolist(),
+        "observation": observation,
         "reward": float(reward),
         "done": done,
         "info": info
