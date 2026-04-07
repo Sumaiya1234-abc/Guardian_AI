@@ -239,7 +239,7 @@ def reset_environment():
     observation, info = env_instance.reset()
 
     return jsonify({
-        "observation": observation,
+        "observation": observation.tolist(),
         "state": {
             "step": 0
         }
@@ -275,7 +275,7 @@ def step_environment():
     done = terminated or truncated
 
     return jsonify({
-        "observation": observation,
+        "observation": observation.tolist(),
         "reward": float(reward),
         "done": done,
         "info": info
