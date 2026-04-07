@@ -386,6 +386,62 @@ def internal_error(error):
         'error': str(error)
     }), 500
 
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({
+        'status': 'error',
+        'message': 'Internal server error',
+        'error': str(error)
+    }), 500
+
+
+# =========================
+# OPENENV REQUIRED ENDPOINTS
+# =========================
+
+@app.route('/reset', methods=['POST'])
+def reset_environment():
+    global store
+    store = DataStore()
+    return jsonify({
+        "status": "reset",
+        "state": {
+            "step": 0,
+            "transactions_processed": 0,
+            "fraud_detected": 0
+        }
+    })
+
+
+@app.route('/state', methods=['GET'])
+def get_state():
+    return jsonify({
+        "state": {
+            "transactions": len(store.transactions),
+            "alerts": len(store.fraud_alerts)
+        }
+    })
+
+
+@app.route('/step', methods=['POST'])
+def step_environment():
+    action = request.json.get("action", "scan")
+
+    tx = generate_mock_transaction()
+    store.add_transaction(tx)
+
+    reward = 1.0 if tx["is_fraud"] else 0.0
+
+    return jsonify({
+        "reward": reward,
+        "done": False,
+        "info": {
+            "transaction_id": tx["transaction_id"],
+            "fraud": tx["is_fraud"]
+        }
+    })
+
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(host='0.0.0.0', port=7860)
+
