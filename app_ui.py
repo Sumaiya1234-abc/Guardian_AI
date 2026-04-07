@@ -219,7 +219,67 @@ def get_info():
         'agents': list(AGENTS.keys()),
         'difficulties': ['easy', 'medium', 'hard'],
         'version': '2.0'
-    })
+    }
+    )# =========================
+# OPENENV REQUIRED ENDPOINTS
+# =========================
+
+env_instance = None
+
+@app.route('/reset', methods=['POST'])
+def reset_environment():
+    global env_instance
+
+    env_instance = FraudDetectionEnv(
+        num_accounts=100,
+        difficulty="medium",
+        max_episode_length=100
+    )
+
+    observation, info = env_instance.reset()
+
+    return jsonify({
+        "observation": observation,
+        "state": {
+            "step": 0
+        }
+    }), 200
+
+
+@app.route('/state', methods=['GET'])
+def get_state():
+    global env_instance
+
+    if env_instance is None:
+        return jsonify({"error": "Environment not initialized"}), 400
+
+    return jsonify({
+        "state": {
+            "step": env_instance.current_step
+        }
+    }), 200
+
+
+@app.route('/step', methods=['POST'])
+def step_environment():
+    global env_instance
+
+    if env_instance is None:
+        return jsonify({"error": "Environment not initialized"}), 400
+
+    data = request.json
+    action = data.get("action", 0)
+
+    observation, reward, terminated, truncated, info = env_instance.step(action)
+
+    done = terminated or truncated
+
+    return jsonify({
+        "observation": observation,
+        "reward": float(reward),
+        "done": done,
+        "info": info
+    }), 200
 
 if __name__ == '__main__':
     print("\n" + "="*50)
