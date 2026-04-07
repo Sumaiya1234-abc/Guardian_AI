@@ -288,7 +288,7 @@ if __name__ == '__main__':
     print("\n🚀 Starting server...")
     print(f"📁 Template folder: {TEMPLATE_DIR}")
     print(f"📁 Template folder exists: {os.path.exists(TEMPLATE_DIR)}")
-    print(f"📁 index.html exists: {os.path.exists(os.path.join(TEMPLATE_DIR, 'index.html') ) }
+    print(f"📁 index.html exists: {os.path.exists(os.path.join(TEMPLATE_DIR, 'index.html') ) }")
     print("🛑 Press Ctrl+C to stop\n")
     
-    app.run(debug=True, host='0.0.0.0', port=7860, use_reloader=False)
+    app.run(debug=True, host='0.0.0.0', port=7860)
