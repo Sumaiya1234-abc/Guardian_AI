@@ -237,7 +237,8 @@ def reset_environment():
     )
 
     observation, info = env_instance.reset()
-
+if hasattr(observation, "tolist"):
+        observation = observation.tolist()
     return jsonify({
         "observation": observation.tolist(),
         "state": {
@@ -273,7 +274,8 @@ def step_environment():
     observation, reward, terminated, truncated, info = env_instance.step(action)
 
     done = terminated or truncated
-
+if hasattr(observation, "tolist"):
+        observation = observation.tolist()
     return jsonify({
         "observation": observation.tolist(),
         "reward": float(reward),
